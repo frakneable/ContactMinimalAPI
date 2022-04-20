@@ -10,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddCors();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -25,6 +26,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().WithOrigins("*"));
 
 app.UseHttpsRedirection();
 
@@ -48,7 +51,7 @@ void MapActionsPeople(WebApplication app)
                 new ContactViewModel(c.Id, c.Value, c.Type)).ToList()))
         .ToListAsync();
     })
-        .Produces<Person>(StatusCodes.Status200OK)
+        .Produces<PersonViewModel>(StatusCodes.Status200OK)
         .WithName("GetPeople")
         .WithTags("Person");
 
@@ -64,7 +67,7 @@ void MapActionsPeople(WebApplication app)
         return Results.Ok(new PersonViewModel(person.Id, person.Name, person.Contacts
             .Select(c => new ContactViewModel(c.Id, c.Value, c.Type)).ToList()));
     })
-        .Produces<Person>(StatusCodes.Status200OK)
+        .Produces<PersonViewModel>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status404NotFound)
         .WithName("GetPersonById")
         .WithTags("Person");
@@ -85,7 +88,7 @@ void MapActionsPeople(WebApplication app)
             : Results.BadRequest("It was not possible to create the person. Some required parameter is missing.");
     })
         .ProducesValidationProblem()
-        .Produces<Person>(StatusCodes.Status201Created)
+        .Produces<PersonViewModel>(StatusCodes.Status201Created)
         .Produces(StatusCodes.Status400BadRequest)
         .WithName("PostPerson")
         .WithTags("Person");
@@ -113,7 +116,7 @@ void MapActionsPeople(WebApplication app)
             : Results.BadRequest("It was not possible to update the person");
     })
         .ProducesValidationProblem()
-        .Produces<Person>(StatusCodes.Status204NoContent)
+        .Produces<PersonViewModel>(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status400BadRequest)
         .WithName("PutPerson")
         .WithTags("Person");
@@ -133,7 +136,7 @@ void MapActionsPeople(WebApplication app)
             : Results.BadRequest("It was not possible to delete the person");
     })
         .ProducesValidationProblem()
-        .Produces<Person>(StatusCodes.Status204NoContent)
+        .Produces<PersonViewModel>(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status400BadRequest)
         .WithName("DeletePerson")
         .WithTags("Person");
@@ -152,12 +155,12 @@ void MapActionsContacts(WebApplication app)
 
         return Results.Ok(new ContactViewModel(contact.Id, contact.Value, contact.Type));
     })
-    .Produces<Person>(StatusCodes.Status200OK)
+    .Produces<ContactViewModel>(StatusCodes.Status200OK)
     .Produces(StatusCodes.Status404NotFound)
     .WithName("GetContactById")
     .WithTags("Contact");
 
-    app.MapPost("/person/{id}/contact", async (
+    app.MapPost("/person/{personId}/contact", async (
         AppDbContext context,
         Guid personId,
         ContactViewModel contact) =>
@@ -172,7 +175,7 @@ void MapActionsContacts(WebApplication app)
 
         return Results.CreatedAtRoute("GetContactById", new { id = newContact.Id }, result);
     })
-    .Produces<Contact>(StatusCodes.Status201Created)
+    .Produces<ContactViewModel>(StatusCodes.Status201Created)
     .Produces(StatusCodes.Status400BadRequest)
     .WithName("PostContact")
     .WithTags("Contact");
@@ -199,7 +202,7 @@ void MapActionsContacts(WebApplication app)
             ? Results.NoContent()
             : Results.BadRequest("It was not possible to update the contact");
     })
-    .Produces<Contact>(StatusCodes.Status204NoContent)
+    .Produces<ContactViewModel>(StatusCodes.Status204NoContent)
     .Produces(StatusCodes.Status400BadRequest)
     .WithName("PutContact")
     .WithTags("Contact");
